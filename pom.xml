@@ -122,6 +122,24 @@
                             <goal>single</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>day2</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                            <finalName>day2</finalName>
+                            <archive>
+                                <manifest>
+                                    <mainClass>com.github.aoc.Day2</mainClass>
+                                </manifest>
+                            </archive>
+                        </configuration>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
                 </executions>
             </plugin>
 
