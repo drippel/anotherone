@@ -14,4 +14,8 @@ object Common {
     ls.toList
   }
   
+  def toInts( line : String, sep : Char = ' ' ) : List[Int] = {
+    val ls = line.split( sep )
+    ls.map( _.toInt ).toList
+  }
 }

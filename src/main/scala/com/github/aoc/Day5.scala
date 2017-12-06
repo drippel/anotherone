@@ -1059,7 +1059,7 @@ object Day5 {
     
     var pos = 0 
     
-    while( pos < current.size ){
+    while( pos < current.size && pos > -1 ){
       
       // go to the pos
       
@@ -1068,7 +1068,12 @@ object Day5 {
       else { pos }
       
       // increment at current pos
-      current(pos) = current(pos) + 1
+      if( current(pos) >= 3 ){
+        current(pos) = current(pos) - 1
+      }
+      else {
+        current(pos) = current(pos) + 1
+      }
       
       // and move the pointer to new pos
       pos = newPos
