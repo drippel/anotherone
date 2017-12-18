@@ -55,6 +55,7 @@ object Day13 {
 92: 17"""
   
  def main( args : Array[String] ) : Unit = {
+
    Console.println( "day 13" )
    
    makeDepths( Common.toLines(data) )
@@ -67,34 +68,50 @@ object Day13 {
    Console.println("final")
    print()
    
-   Console.println( calcCollisions() )
+   // Console.println( calcCollisions() )
    
- }
+  }
   
   def run() : Unit = {
     
-    while( packet < layers ){
-      
-      Console.println("before")
-      print()
+    var time = 0
     
-      // move packet
-      packet = packet + 1
+    while( winners.isEmpty ){
       
-      Console.println("move runner")
-      print()
+      // Console.println("before")
+      // print()
+      
+      // add a new runner at this time
+      runners += (time -> new Runner( time ))  
+    
+      // move runners
+      for( r <- runners ){
 
-      // detect collision
-      scanners.get(packet) match {
-        case Some(s) => {
-          if( s.pos == 0 ){
-            // collision
-            collision += packet
+        r._2.pos = r._2.pos + 1
+      
+        // detect collision
+        scanners.get(r._2.pos) match {
+          case Some(s) => {
+            if( s.pos == 0 ){
+              // collision
+              r._2.collisions += r._2.pos
+            }
+          }
+          case None => {
+            // open
           }
         }
-        case None => {
-          // open
+        
+        if( r._2.pos >= layers ){
+          runners.remove(r._1)
+          if( r._2.collisions.size > 0 ){
+            losers += r._2 
+          }
+          else {
+            winners += r._2 
+          }
         }
+
       }
     
       // move scanners
@@ -118,8 +135,12 @@ object Day13 {
           k._2.pos = pos
         }
       }
+      
+      Console.println("time:" + time )
+      time = time + 1
 
     }
+    // print()
   }
 
   def calcLayers() : Unit = {
@@ -127,10 +148,22 @@ object Day13 {
   }
   
   def print() : Unit = {
-    Console.println( "Runner:" + packet )
+    for( r <- runners ){
+      Console.println( "Runner: t: "+ r._2.start + " p:"+ r._2.pos +" cs:"+ r._2.collisions )
+    }
+    
+    /*
+    for( l <- losers ){
+      Console.println( "Loser: t: "+ l.start + " p:"+ l.pos +" cs:"+ l.collisions )
+    }
+    */
+
+    for( w <- winners ){
+      Console.println( "Winner: t: "+ w.start + " p:"+ w.pos +" cs:"+ w.collisions )
+    }
+
     
     for( i <- 0 to layers ){
-      
       if( depths.contains(i) ){
         Console.print( "(" + i +","+ scanners(i).pos +")  " ) 
       }
@@ -139,7 +172,7 @@ object Day13 {
       }
     }
     Console.print( "\n" )
-    Console.println( "Collisions:"+ collision )
+
   }
   
   def initScanners() : Unit = {
@@ -159,20 +192,21 @@ object Day13 {
   
   class Scanner( var pos : Int = 0, var dir : Int = 1 )
   
-  class Runner( val start : Int, var pos : Int, val collisions : ListBuffer[Int] = ListBuffer[Int]() )
+  // runners start outside
+  class Runner( val start : Int, var pos : Int = -1, val collisions : ListBuffer[Int] = ListBuffer[Int]() )
   
   val depths = HashMap[Int,Int]()
+
   val scanners = HashMap[Int,Scanner]()
-  val collision = ListBuffer[Int]()
   
-  val runners = ListBuffer[Runner]() 
+  val runners = HashMap[Int,Runner]() 
   
   val winners = ListBuffer[Runner]()
-  
+  val losers  = ListBuffer[Runner]()
   
   var layers = -1
-  var packet = -1 ;
   
+  /*
   def calcCollisions() : Int = {
     
     var ret = 0
@@ -189,4 +223,6 @@ object Day13 {
     ret
     
   }
+  * 
+  */
 }
