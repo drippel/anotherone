@@ -81,6 +81,55 @@ object Day10B {
     }
   }
   
+  def knotHash( input : String ) : String = {
+    
+    // init the circular list
+    val ns = ListBuffer[Int]()
+    for( i <- 0 to 255 ){
+      ns += i
+    }
+    
+    // initial list
+    val cl = CList.createCList(ns.toList)
+    // Console.println(cl)
+    
+    // val start = "1,2,3"
+    val l1 = convert( input )
+    // Console.println(l1)
+    
+    val l2 = addSalt(l1)
+    // Console.println(l2)
+    
+    hash(cl,l2)
+    // Console.println(cl)
+    
+    // convert to a list of ints
+    
+    var sparse = ListBuffer[Int]()
+    for( n <- cl.list ){
+      sparse += n.value
+    }
+    
+    // Console.println( sparse )
+    
+    val dense = reduce( sparse.toList )
+    
+    // Console.println( dense )
+    
+    val hexes = dense.map( _.toHexString ) 
+    
+    // Console.println( hexes )
+    
+    var res = "" 
+    for( h <- hexes ){
+      val s = h.reverse.padTo(2, '0').reverse
+      res = res + s
+    }
+
+    res 
+    
+  }
+  
   def main( args : Array[String] ) : Unit = {
     Console.println( "day 10b...")
     
@@ -145,7 +194,7 @@ object Day10B {
   
   def reduce( src : List[Int] ) : List[Int] = {
     
-    Console.println(src)
+    // Console.println(src)
     val groups = src.grouped(16)
     val res = groups.map( xor( _ ) )
     
@@ -192,7 +241,7 @@ object Day10B {
     
         // increment skip
         skip = skip + 1
-        Console.println( "l:"+ len + " p:"+ pos + " s:"+ skip +" cl:"+  cl )
+        // Console.println( "l:"+ len + " p:"+ pos + " s:"+ skip +" cl:"+  cl )
       }
 
     }
