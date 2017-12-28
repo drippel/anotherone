@@ -1,6 +1,8 @@
 package com.github.aoc
 
 import scala.collection.mutable.ListBuffer
+import java.util.Date
+import scala.collection.mutable.HashSet
 
 object Day16 {
   
@@ -13,6 +15,9 @@ object Day16 {
   case class Exchange( a : String, b : String ) extends Instruction
   case class Partner( a : String, b : String ) extends Instruction
   
+  var t = (new Date()).getTime
+  val limit = 1000000000
+  
   def main( args : Array[String] ) : Unit = {
     Console.println( "day 16..." )
     
@@ -22,54 +27,43 @@ object Day16 {
     Console.println( is.size )
     
     working ++= dancers
-    working2 ++= dancers
     Console.println( working.mkString("") )
+    combos += working.mkString("")
     
-    // for( i <- 0 until 1000000000 ){
+    
+    var i = 0
+    var found = false
+    while( !found ) {
+
       for( instr <- is ){
         apply( instr )
       }
-      // if( i % 1000000 == 0 ){
-        // Console.println(i)
-      // }
-    // }
-    Console.println( working.mkString("") )
-    
-    for( i <- 0 until 1000000000 ){
-      transform()
-      if( i % 1000000 == 0 ){
-        Console.println(i)
+      
+      val curr = working.mkString("")
+      Console.println( curr )
+      
+      if( combos.contains(curr) ){
+        found = true
       }
-    }
-    transform()
-    Console.println( working2.mkString("") )
-  }
-  
-  var working2 = ListBuffer[Char]()
-  val ts = List[(Int,Int)](  (0, 12), (1, 4), (2, 2),   (3, 11), (4, 14), (5, 10), (6, 6),  (7, 7), (8, 3), (9, 8), (10, 15), (11, 1), (12, 9), (13, 0), (14, 5), (15, 13) )
+      else {
+        combos += curr
+      }
 
-  def transform() : Unit = {
-    
-    val temp = ListBuffer[Char]()
-    temp ++= working2
-    
-    // work on the string directly
-    // 0123456789012345
-    // abcdefghijklmnop
-    // nlciboghjmfdapek
-    // 0123456789012345
-    
-    // transform list
-    for( t <- ts ){
-      temp(t._2) = working2(t._1)
+      i = i + 1
     }
+
+    Console.println( working.mkString("") )
+    Console.println( "cycle len:"+ i )
     
-    working2 = temp
-    
+    val m = limit % i
+    Console.println( "mod"+ m )
+    Console.println( combos(m) )
+
     
   }
   
   var working = ListBuffer[Char]() 
+  val combos = ListBuffer[String]()
 
   val dex = ListBuffer[Char]( 'a', 'b', 'c', 'd', 'e' ) 
   val dancers = ListBuffer[Char]( 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p' ) 
@@ -83,14 +77,10 @@ object Day16 {
   }
   
   def spin( s : String ) : Unit = {
-    
     for( i <- 0 until s.toInt ){
-      
       var c = working.remove( working.size - 1)
       c +=: working
-      
     }
-    
   }
   
   def exchange( a : String, b : String ) : Unit = {
