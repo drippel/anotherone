@@ -19,6 +19,14 @@ jgz a -1
 set a 1
 jgz a -2"""
   
+  val ex2 = """snd 1
+snd 2
+snd p
+rcv a
+rcv b
+rcv c
+rcv d"""
+  
   val data = """set i 31
 set a 1
 mul p 17
@@ -67,7 +75,7 @@ jgz a -19"""
   case class Add( x : String, y : String ) extends Instruction
   case class Mult( x : String, y : String ) extends Instruction
   case class Mod( x : String, y : String ) extends Instruction
-  case class Recover( x : String ) extends Instruction
+  case class Receive( x : String ) extends Instruction
   case class Jump( x : String, y : String ) extends Instruction
   
   def main( args : Array[String] ) : Unit = {
@@ -76,9 +84,7 @@ jgz a -19"""
     val lines = Common.toLines(data)
     val program = lines.map( convert( _ ) )
     
-    val ctx = new Context( "0" )
-    
-    run( ctx, program )
+    run( List(new Context( "0" ), new Context( "1" )), program )
   }
   
   def convert( line : String ) : Instruction = {
@@ -90,7 +96,7 @@ jgz a -19"""
       case "add" => { Add( parts(1), parts(2) )}
       case "mul" => { Mult( parts(1), parts(2) )}
       case "mod" => { Mod( parts(1), parts(2) )}
-      case "rcv" => { Recover( parts(1) )}
+      case "rcv" => { Receive( parts(1) )}
       case "jgz" => { Jump( parts(1), parts(2) )}
       
     }
@@ -100,14 +106,16 @@ jgz a -19"""
   class Context( val id : String ) {
 
     val registers = HashMap[String,Long]( ( "p" -> id.toLong ) )
-    val messages = Queue[Int]()
+    val messages = Queue[Long]()
     
     var sent = 0
     var received = 0
     
+    var pos = 0
+    
     override def toString() : String = {
 
-      var s = "( "
+      var s = "(id:"+ id +" "
       
       s += "(Regs:[" + registers + "]) "
       s += "(Msgs:[" + messages + "]) "
@@ -129,70 +137,106 @@ jgz a -19"""
     }
   }
   
-  def run( ctx : Context, program : List[Instruction] ) : Int = {
+  def send( from : Context, cs : List[Context], value : Long ) : Unit = {
+    from.sent = from.sent + 1
+    
+    val cf = cs.filter( !_.id.equals( from.id ) )
+    cf.foreach( ( c : Context ) => {
+      c.messages.enqueue(value)
+      
+    } )
+  }
+  
+  def deadlock( cs : List[Context] ) : Boolean = {
+    cs.forall( _.messages.isEmpty )
+  }
+  
+  def switch( curr : Context, cs : List[Context] ) : Context = {
+    val cf = cs.filter( !_.id.equals( curr.id ) )
+    cf.head
+  }
+  
+  def run( cs : List[Context], program : List[Instruction] ) : Int = {
+    
+    // start with 0
+    var ctx = cs(0)
 
-    var lastSound = -1L
-    var pos = 0
-    while( pos < program.size ){
-      Console.println( program(pos) )
+    while( ctx.pos < program.size ){
+      Console.println( program(ctx.pos) )
       Console.println( ctx.registers )
 
-      pos = program(pos) match {
+      program(ctx.pos) match {
         case Send(x) => {
-          lastSound = regOrValue( ctx, x)
-          Console.println("Send:"+ lastSound )
-          ctx.sent = ctx.sent + 1
-          pos + 1
+          val msg = regOrValue( ctx, x)
+          Console.println("Send:"+ msg )
+          send( ctx, cs, msg )
+          ctx.pos = ctx.pos + 1
         }
         case Set( x, y ) => {
           val a = regOrValue( ctx, y)
           ctx.registers += ( x -> a )
-          pos + 1
+          ctx.pos = ctx.pos + 1
         }
         case Add( x, y ) => {
           val a = regOrValue( ctx, x)
           val b = regOrValue( ctx, y)
           ctx.registers += ( x -> (a + b) )
-          pos + 1
+          ctx.pos = ctx.pos + 1
         }
         case Mult( x, y ) => {
           val a = regOrValue( ctx, x)
           val b = regOrValue( ctx, y)
           ctx.registers += ( x -> (a * b) )
-          pos + 1
+          ctx.pos = ctx.pos + 1
         }
         case Mod( x, y ) => {
           val a = regOrValue( ctx, x)
           val b = regOrValue( ctx, y)
           ctx.registers += ( x -> (a % b) )
-          pos + 1
+          ctx.pos = ctx.pos + 1
         }
-        case Recover( x ) => {
-          val a = regOrValue( ctx, x)
-          if( a != 0 ){
-            Console.println( "Recover: "+ lastSound )
-            ctx.received = ctx.received + 1
-            program.size + 1
+        case Receive( x ) => {
+          
+          // is this a deadlock situation?
+          if( deadlock( cs ) ){
+            // stop processing
+            Console.println(  "deadlock" )
+            ctx.pos = program.size + 1
           }
           else {
-            pos + 1
+          
+            // are there messages in the queue?
+            if( ctx.messages.isEmpty ){
+              // switch
+              val next = switch( ctx, cs )
+              Console.println( "switch curr:"+ ctx.id +" new:" + next.id )
+              ctx = next
+            }
+            else {
+            
+              val msg = ctx.messages.dequeue()
+              Console.println( "Recieved:" + msg )
+              ctx.registers += ( x -> msg )
+              ctx.received = ctx.received + 1
+              ctx.pos = ctx.pos + 1
+          
+            }
           }
         }
         case Jump( x, y ) => {
           val a = regOrValue( ctx, x)
           val b = regOrValue( ctx, y)
           if( a > 0 ){
-            pos + b.toInt
+            ctx.pos = ctx.pos + b.toInt
           }
           else {
-            pos + 1
+            ctx.pos = ctx.pos + 1
           }
         }
       }
     }
     
-    Console.println(lastSound)
-    Console.println(ctx)
+    cs.foreach( Console.println( _ ) ) 
     0
     
   }
