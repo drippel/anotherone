@@ -4,6 +4,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.ArrayStack
 import org.apache.commons.lang3.math.NumberUtils
+import scala.collection.mutable.Queue
 
 object Day18 {
   
@@ -75,7 +76,9 @@ jgz a -19"""
     val lines = Common.toLines(data)
     val program = lines.map( convert( _ ) )
     
-    run( program )
+    val ctx = new Context( "0" )
+    
+    run( ctx, program )
   }
   
   def convert( line : String ) : Instruction = {
@@ -94,58 +97,81 @@ jgz a -19"""
     
   }
   
-  val registers = HashMap[String,Long]()
+  class Context( val id : String ) {
+
+    val registers = HashMap[String,Long]( ( "p" -> id.toLong ) )
+    val messages = Queue[Int]()
+    
+    var sent = 0
+    var received = 0
+    
+    override def toString() : String = {
+
+      var s = "( "
+      
+      s += "(Regs:[" + registers + "]) "
+      s += "(Msgs:[" + messages + "]) "
+      s += "(Sent:" + sent + ") "
+      s += "(Recd:" + received + ") "
+      
+      s = s + ")"
+      
+      s
+    }
+  }
   
-  def regOrValue( x : String ) : Long = {
+  def regOrValue( ctx : Context,  x : String ) : Long = {
     if( NumberUtils.isCreatable(x) ){
       x.toLong
     }
     else {
-      registers.get(x).getOrElse(0)
+      ctx.registers.get(x).getOrElse(0)
     }
   }
   
-  def run( program : List[Instruction] ) : Int = {
+  def run( ctx : Context, program : List[Instruction] ) : Int = {
 
     var lastSound = -1L
     var pos = 0
     while( pos < program.size ){
       Console.println( program(pos) )
-      Console.println( registers )
+      Console.println( ctx.registers )
 
       pos = program(pos) match {
         case Send(x) => {
-          lastSound = regOrValue(x)
+          lastSound = regOrValue( ctx, x)
           Console.println("Send:"+ lastSound )
+          ctx.sent = ctx.sent + 1
           pos + 1
         }
         case Set( x, y ) => {
-          val a = regOrValue(y)
-          registers += ( x -> a )
+          val a = regOrValue( ctx, y)
+          ctx.registers += ( x -> a )
           pos + 1
         }
         case Add( x, y ) => {
-          val a = regOrValue(x)
-          val b = regOrValue(y)
-          registers += ( x -> (a + b) )
+          val a = regOrValue( ctx, x)
+          val b = regOrValue( ctx, y)
+          ctx.registers += ( x -> (a + b) )
           pos + 1
         }
         case Mult( x, y ) => {
-          val a = regOrValue(x)
-          val b = regOrValue(y)
-          registers += ( x -> (a * b) )
+          val a = regOrValue( ctx, x)
+          val b = regOrValue( ctx, y)
+          ctx.registers += ( x -> (a * b) )
           pos + 1
         }
         case Mod( x, y ) => {
-          val a = regOrValue(x)
-          val b = regOrValue(y)
-          registers += ( x -> (a % b) )
+          val a = regOrValue( ctx, x)
+          val b = regOrValue( ctx, y)
+          ctx.registers += ( x -> (a % b) )
           pos + 1
         }
         case Recover( x ) => {
-          val a = regOrValue(x)
+          val a = regOrValue( ctx, x)
           if( a != 0 ){
             Console.println( "Recover: "+ lastSound )
+            ctx.received = ctx.received + 1
             program.size + 1
           }
           else {
@@ -153,8 +179,8 @@ jgz a -19"""
           }
         }
         case Jump( x, y ) => {
-          val a = regOrValue(x)
-          val b = regOrValue(y)
+          val a = regOrValue( ctx, x)
+          val b = regOrValue( ctx, y)
           if( a > 0 ){
             pos + b.toInt
           }
@@ -166,6 +192,7 @@ jgz a -19"""
     }
     
     Console.println(lastSound)
+    Console.println(ctx)
     0
     
   }
