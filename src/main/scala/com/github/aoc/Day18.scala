@@ -60,145 +60,115 @@ snd a
 jgz f -16
 jgz a -19"""
   
+  class Instruction()
+  case class Send( x : String ) extends Instruction
+  case class Set( x : String, y : String ) extends Instruction
+  case class Add( x : String, y : String ) extends Instruction
+  case class Mult( x : String, y : String ) extends Instruction
+  case class Mod( x : String, y : String ) extends Instruction
+  case class Recover( x : String ) extends Instruction
+  case class Jump( x : String, y : String ) extends Instruction
+  
   def main( args : Array[String] ) : Unit = {
     Console.println("day 18...")
     
     val lines = Common.toLines(data)
     val program = lines.map( convert( _ ) )
     
-    Console.println( program )
-    run(program)
+    run( program )
   }
   
-  def run( program : List[(Context) => (Int,Int) ]) : Unit = {
+  def convert( line : String ) : Instruction = {
     
-    val ctx = new Context()
-    
-    debug(ctx)
-    
-    // init
-    
-    while( ctx.instr < program.size ){
-      val res = program(ctx.instr)(ctx)
-      if( res._1 != 1 ){
-        ctx.instr = program.size + 1
-      }
-      else {
-        ctx.instr = ctx.instr + res._2
-      }
-      // debug(ctx)
-    }
-    
-  }
-  
-  def debug( ctx : Context ) : Unit = {
-    Console.println( "Instr:"+ ctx.instr )
-    Console.println( "Regs:"+ ctx.registers )
-    Console.println( "Sounds:"+ ctx.sounds )
-    Console.println( "" )
-  }
-  
-  
-  class Context() {
-    val registers = HashMap[String,Int]()
-    val sounds = ArrayStack[Int]()
-    var instr = 0
-  }
-  
-  def convert( line : String ) : (Context) => (Int,Int) = {
-    
-    val ps = line.split(" ")
-    
-    ps(0) match {
-      
-      case "snd" => { send( ps(1) ) }
-      case "set" => { set( ps(1) )( ps(2) ) }
-      case "add" => { add( ps(1) )( ps(2) ) }
-      case "mul" => { mult( ps(1) )( ps(2) ) }
-      case "mod" => { mod( ps(1) )( ps(2) )}
-      case "rcv" => { recover( ps(1) )}
-      case "jgz" => { jump( ps(1) )( ps(2) ) }
+    val parts = line.split(" ")
+    parts(0) match {
+      case "snd" => { Send( parts(1) ) }
+      case "set" => { Set( parts(1), parts(2) ) }
+      case "add" => { Add( parts(1), parts(2) )}
+      case "mul" => { Mult( parts(1), parts(2) )}
+      case "mod" => { Mod( parts(1), parts(2) )}
+      case "rcv" => { Recover( parts(1) )}
+      case "jgz" => { Jump( parts(1), parts(2) )}
       
     }
-
+    
   }
   
-  def regOrValue( r : String, ctx : Context ) : Int = {
-    
-    if( NumberUtils.isCreatable(r) ){
-      r.toInt
+  val registers = HashMap[String,Long]()
+  
+  def regOrValue( x : String ) : Long = {
+    if( NumberUtils.isCreatable(x) ){
+      x.toLong
     }
     else {
-      ctx.registers.get(r) match {
-        case Some(i) => { i }
-        case None => { 0 }
+      registers.get(x).getOrElse(0)
+    }
+  }
+  
+  def run( program : List[Instruction] ) : Int = {
+
+    var lastSound = -1L
+    var pos = 0
+    while( pos < program.size ){
+      Console.println( program(pos) )
+      Console.println( registers )
+
+      pos = program(pos) match {
+        case Send(x) => {
+          lastSound = regOrValue(x)
+          Console.println("Send:"+ lastSound )
+          pos + 1
+        }
+        case Set( x, y ) => {
+          val a = regOrValue(y)
+          registers += ( x -> a )
+          pos + 1
+        }
+        case Add( x, y ) => {
+          val a = regOrValue(x)
+          val b = regOrValue(y)
+          registers += ( x -> (a + b) )
+          pos + 1
+        }
+        case Mult( x, y ) => {
+          val a = regOrValue(x)
+          val b = regOrValue(y)
+          registers += ( x -> (a * b) )
+          pos + 1
+        }
+        case Mod( x, y ) => {
+          val a = regOrValue(x)
+          val b = regOrValue(y)
+          registers += ( x -> (a % b) )
+          pos + 1
+        }
+        case Recover( x ) => {
+          val a = regOrValue(x)
+          if( a != 0 ){
+            Console.println( "Recover: "+ lastSound )
+            program.size + 1
+          }
+          else {
+            pos + 1
+          }
+        }
+        case Jump( x, y ) => {
+          val a = regOrValue(x)
+          val b = regOrValue(y)
+          if( a > 0 ){
+            pos + b.toInt
+          }
+          else {
+            pos + 1
+          }
+        }
       }
     }
     
+    Console.println(lastSound)
+    0
+    
   }
   
-  def send( x : String )( ctx : Context) : (Int,Int) = {
-    val s = regOrValue( x, ctx )
-    ctx.sounds.push(s)
-    Console.println("Send:"+ s )
-    (1,1)
-  }
-
-  def set( x : String)(y : String )( ctx : Context) : (Int,Int) = { 
-    val v = regOrValue( y, ctx )
-    ctx.registers += (x -> v)
-    (1,1)
-  }
-
-  def add( x : String)(y : String )( ctx : Context) : (Int,Int) = { 
-    
-    val a = regOrValue( x, ctx )
-    val b = regOrValue( y, ctx )
-    
-    val s = a + b
-    ctx.registers += (x -> s)
-    (1,1)
-  }
-
-  def mult( x : String)(y : String )( ctx : Context) : (Int,Int) = { 
-
-    val a = regOrValue( x, ctx )
-    val b = regOrValue( y, ctx )
-    
-    val s = a * b
-    ctx.registers += (x -> s)
-    (1,1)
-  }
-
-  def mod( x : String)(y : String )( ctx : Context) : (Int,Int) = { 
-    val a = regOrValue( x, ctx )
-    val b = regOrValue( y, ctx )
-    
-    val s = a % b
-    ctx.registers += (x -> s)
-    (1,1)
-  }
-
-  def recover( x : String )( ctx : Context) : (Int,Int) = { 
-    val v = regOrValue(x,ctx)
-    if( v != 0 ){
-      val r = ctx.sounds.pop()
-      Console.println( "Recover:"+ r ) 
-      (0,0) 
-    }
-    else {
-      (1,1)
-    }
-  }
-
-  def jump( x : String)(y : String )( ctx : Context) : (Int,Int) = { 
-    val a = regOrValue( x, ctx )
-    if( a > 0 ){
-      (1,regOrValue(y, ctx))
-    }
-    else {
-      (1,1)
-    }
-  }  
-
+  
 }

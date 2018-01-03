@@ -37,6 +37,12 @@
         </dependency>
 
         <dependency>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-lang3</artifactId>
+          <version>3.7</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
             <version>2.10.0</version>
@@ -141,16 +147,16 @@
                         </goals>
                     </execution>
                     <execution>
-                        <id>day3</id>
+                        <id>day18</id>
                         <phase>package</phase>
                         <configuration>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
-                            <finalName>day3</finalName>
+                            <finalName>day18</finalName>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.github.aoc.Day3</mainClass>
+                                    <mainClass>com.github.aoc.Day18</mainClass>
                                 </manifest>
                             </archive>
                         </configuration>
