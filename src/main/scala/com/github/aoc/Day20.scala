@@ -1008,20 +1008,21 @@ p=<-327,-2234,1998>, v=<-44,-322,283>, a=<1,22,-22>
 p=<1599,722,1794>, v=<228,102,260>, a=<-16,-7,-17>
 p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
 
-  class Coord( val x : Int, val y : Int, val z : Int ) {
+  class Coord( val x : Long, val y : Long, val z : Long ) {
     override def toString() : String = {
       "<" + x +","+ y +","+ z +">"
     }
   }
 
   class Particle( val id : Int, 
-    val pos : ListBuffer[Coord] = ListBuffer[Coord](),
-    val velocity : ListBuffer[Coord] = ListBuffer[Coord](),
-    val accel : ListBuffer[Coord] = ListBuffer[Coord](),
-    val distances : ListBuffer[Int] = ListBuffer[Int]() ) {
+    var position : Coord,
+    var velocity : Coord,
+    var acceleration : Coord,
+    var distance : Long,
+    var delta : Long ) {
     
     override def toString() : String = {
-      "(" + id + "," + pos.head + "," + velocity.head +","+ accel.head + " " + distances.head  + ")"
+      "(" + id + ", pos:" + position + ", vel:" + velocity +", acc:"+ acceleration+ ", d:" + distance  +", dx:" + delta +" )"
     }
   }
   
@@ -1040,14 +1041,14 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
   
   def printPoints( ps : List[Particle] ) : Unit = {
     for( p <- ps ){
-      Console.print( "(" + p.id +" " + p.pos.head + ")" )
+      Console.print( "(" + p.id +" " + p.position + ")" )
     }
     Console.println( "\n" )
   }
   
   def printDistances( ps : List[Particle] ) : Unit = {
     for( p <- ps ){
-      Console.print( "(" + p.id +" " + p.distances.head + ")" )
+      Console.print( "(" + p.id +" " + p.distance + ")" )
     }
     Console.println( "\n" )
   }
@@ -1055,48 +1056,57 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
   def run( particles : List[Particle] ) : Unit = {
     
     Console.println( "t:0" )
-    printPoints( particles )
+    particles.foreach( Console.println( _ ) )
     
     Console.println("start simulation")
-    for( i <- 0 until 20000 ){
+    var continue = true
+    var t = 1
+    while( continue ){
       
 
-      Console.println( "t:" + (i+1) )
+      Console.println( "t:" + t )
       // adjust the particles
       particles.foreach( tick( _ ) )
       
       // print the positions
       // printDistances( particles )
+      // particles.foreach( Console.println( _ ) )
+      t = t + 1
+      
+      continue = !particles.forall( _.delta > 0 )
       
     }
     Console.println("end simulation")
 
-    printPoints( particles )
+    // printPoints( particles )
+    // printDistances( particles )
+    particles.foreach( Console.println( _ ) )
     
-    val p0 = particles(0)
-    Console.println(p0.distances)
-    val p1 = particles(1)
-    Console.println(p1.distances)
+    val ps = particles.sortBy( (p : Particle) => { distance( p.acceleration ) } )
+    Console.println( ps )
+    Console.println(t)
     
   }
   
   def tick( p : Particle ) : Unit = {
     
     // accelerate
-    val a = p.accel.head
-    val v1 = p.velocity.head 
-    val v2 = new Coord( v1.x + a.x, v1.y + a.y, v1.z + a.z ) 
-    v2 +=: p.velocity
+    val a = p.acceleration
+    val v1 = p.velocity
+    p.velocity = new Coord( v1.x + a.x, v1.y + a.y, v1.z + a.z ) 
     
     // move
-    val c = p.velocity.head
-    val p1 = p.pos.head
-    val p2 = new Coord( p1.x + c.x, p1.y + c.y, p1.z + c.z ) 
-    p2 +=: p.pos
+    val c = p.velocity
+    val p1 = p.position
+    p.position = new Coord( p1.x + c.x, p1.y + c.y, p1.z + c.z ) 
     
-    // calc the distance
-    val d1 = distance( p.pos.head )
-    d1 +=: p.distances
+    // calc the new distance
+    val d1 = distance( p.position )
+    
+    // new - old = delta - > 0 moving away < 0 moving towards 
+    p.delta = d1 - p.distance
+    
+    p.distance = d1
 
     
   }
@@ -1111,14 +1121,9 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
       val p = convert( parts(1) )
       val v = convert( parts(2) )
       val a = convert( parts(3) )
+      val d = distance(p)
 
-      val par = new Particle( i )
-      par.pos += p 
-      par.velocity += v 
-      par.accel += a 
-      
-      // calc the initial distance
-      par.distances += distance(par.pos.head)
+      val par = new Particle( i, p, v, a, d, d ) 
 
       ps += par
       
@@ -1128,7 +1133,7 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
     
   }
   
-  def distance( c : Coord ) : Int = {
+  def distance( c : Coord ) : Long = {
     scala.math.abs(c.x) + scala.math.abs(c.y) + scala.math.abs(c.z) 
   }
   
