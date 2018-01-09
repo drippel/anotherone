@@ -1,11 +1,17 @@
 package com.github.aoc
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.HashMap
 
 object Day20 {
   
 val ex = """p=< 3,0,0>, v=< 2,0,0>, a=<-1,0,0>
 p=< 4,0,0>, v=< 0,0,0>, a=<-2,0,0>"""
+
+val ex2 = """p=<-6,0,0>, v=< 3,0,0>, a=< 0,0,0>
+p=<-4,0,0>, v=< 2,0,0>, a=< 0,0,0>
+p=<-2,0,0>, v=< 1,0,0>, a=< 0,0,0>
+p=< 3,0,0>, v=<-1,0,0>, a=< 0,0,0>"""
 
 val data = """p=<1199,-2918,1457>, v=<-13,115,-8>, a=<-7,8,-10>
 p=<2551,2418,-1471>, v=<-106,-108,39>, a=<-6,-5,6>
@@ -1008,10 +1014,14 @@ p=<-327,-2234,1998>, v=<-44,-322,283>, a=<1,22,-22>
 p=<1599,722,1794>, v=<228,102,260>, a=<-16,-7,-17>
 p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
 
-  class Coord( val x : Long, val y : Long, val z : Long ) {
+case class Coord( val x : Long, val y : Long, val z : Long ) {
     override def toString() : String = {
       "<" + x +","+ y +","+ z +">"
     }
+  }
+
+  def collision( c1: Coord, c2 : Coord ) : Boolean = {
+    c1.x == c2.x && c1.y == c2.y && c1.z == c2.z
   }
 
   class Particle( val id : Int, 
@@ -1019,7 +1029,8 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
     var velocity : Coord,
     var acceleration : Coord,
     var distance : Long,
-    var delta : Long ) {
+    var delta : Long,
+    var deltas : HashMap[Int,Long]) {
     
     override def toString() : String = {
       "(" + id + ", pos:" + position + ", vel:" + velocity +", acc:"+ acceleration+ ", d:" + distance  +", dx:" + delta +" )"
@@ -1030,13 +1041,63 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
     Console.println( "day 20..." )
     
     val lines = Common.toLines(data)
-    Console.println( lines )
+    // Console.println( lines )
     
     val ps = convert(lines)
-    Console.println( ps )
+    // Console.println( ps.size )
+    calcDistances(ps)
     
-    run( ps )
+    ps.foreach( tick(_) )
+    calcDistances(ps)
+    ps.foreach( tick(_) )
+    calcDistances(ps)
+    ps.foreach( tick(_) )
+    calcDistances(ps)
     
+    // val pgs = ps.groupBy( _.position )
+    // Console.println( pgs.size )
+    
+    // run( ps )
+    Console.println( ps.head.id )
+    Console.println( ps.head )
+    Console.println( ps.head.deltas )
+    
+    val p2 = ps.find( _.id == 137 ) 
+    if( p2.isDefined ){
+      Console.println( p2.get.deltas.get(0) )
+    }
+    
+  }
+  
+  def calcDistances( ps : List[Particle] ) : Unit = {
+    
+    val pi = ps
+    
+    for( p1 <- ps ){
+      for( p2 <- pi ){
+        
+        if( p1.id != p2.id ){
+          
+          val nd = distance( p1.position, p2.position )
+          
+          p1.deltas.get(p2.id) match {
+            case Some(d) => {
+              val dx = nd - d
+              p1.deltas += (p2.id -> dx)
+            }
+            case None => { 
+              p1.deltas += (p2.id -> nd) 
+            }
+          }
+        }
+        
+      }
+    }
+    
+  }
+
+  def distance( c1 : Coord, c2 : Coord ) : Long = {
+    scala.math.abs(c1.x - c2.x) + scala.math.abs(c1.y - c2.y) + scala.math.abs(c1.z - c2.z) 
   }
   
   def printPoints( ps : List[Particle] ) : Unit = {
@@ -1053,7 +1114,10 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
     Console.println( "\n" )
   }
 
-  def run( particles : List[Particle] ) : Unit = {
+  def run( particlesIn : List[Particle] ) : Unit = {
+    
+    val particles = ListBuffer[Particle]()
+    particles ++= particlesIn
     
     Console.println( "t:0" )
     particles.foreach( Console.println( _ ) )
@@ -1068,22 +1132,41 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
       // adjust the particles
       particles.foreach( tick( _ ) )
       
+      calcDistances(particles.toList)
+      
       // print the positions
       // printDistances( particles )
       // particles.foreach( Console.println( _ ) )
       t = t + 1
       
-      continue = !particles.forall( _.delta > 0 )
+      val gs = particles.groupBy( _.position )
+      
+      if( gs.size != particles.size ){
+        Console.println( "t:"+ t )
+        Console.println( "found collision" )
+        val ds = gs.filter( _._2.size > 1 )
+        Console.println( ds )
+        continue = false
+      }
+      
+      
+      // if there is only 1 particle left
+      // or if all the particles are moving away from each other - we are done
+      if( particles.size <= 1 ){
+        continue = false
+      }
+      
+      
       
     }
     Console.println("end simulation")
 
     // printPoints( particles )
     // printDistances( particles )
-    particles.foreach( Console.println( _ ) )
+    // particles.foreach( Console.println( _ ) )
     
     val ps = particles.sortBy( (p : Particle) => { distance( p.acceleration ) } )
-    Console.println( ps )
+    // Console.println( ps )
     Console.println(t)
     
   }
@@ -1123,7 +1206,7 @@ p=<749,-3446,-111>, v=<114,-490,-13>, a=<-9,35,1>"""
       val a = convert( parts(3) )
       val d = distance(p)
 
-      val par = new Particle( i, p, v, a, d, d ) 
+      val par = new Particle( i, p, v, a, d, d, new HashMap[Int,Long]() ) 
 
       ps += par
       
