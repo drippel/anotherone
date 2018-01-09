@@ -1041,34 +1041,17 @@ case class Coord( val x : Long, val y : Long, val z : Long ) {
     Console.println( "day 20..." )
     
     val lines = Common.toLines(data)
-    // Console.println( lines )
     
+    // convert and initialize the distances
     val ps = convert(lines)
-    // Console.println( ps.size )
     calcDistances(ps)
     
-    ps.foreach( tick(_) )
-    calcDistances(ps)
-    ps.foreach( tick(_) )
-    calcDistances(ps)
-    ps.foreach( tick(_) )
-    calcDistances(ps)
-    
-    // val pgs = ps.groupBy( _.position )
-    // Console.println( pgs.size )
-    
-    // run( ps )
-    Console.println( ps.head.id )
-    Console.println( ps.head )
-    Console.println( ps.head.deltas )
-    
-    val p2 = ps.find( _.id == 137 ) 
-    if( p2.isDefined ){
-      Console.println( p2.get.deltas.get(0) )
-    }
+    run( ps )
     
   }
   
+  // calc the distances from each point to all other points
+  // could be simplified
   def calcDistances( ps : List[Particle] ) : Unit = {
     
     val pi = ps
@@ -1116,59 +1099,76 @@ case class Coord( val x : Long, val y : Long, val z : Long ) {
 
   def run( particlesIn : List[Particle] ) : Unit = {
     
-    val particles = ListBuffer[Particle]()
-    particles ++= particlesIn
+    val pmap = HashMap[Int,Particle]()
+    particlesIn.foreach( (p : Particle) => {
+      pmap += ( p.id -> p )
+    })
     
+    /*
     Console.println( "t:0" )
-    particles.foreach( Console.println( _ ) )
-    
+    pmap.foreach( ( kv : (Int,Particle) ) => { 
+      Console.println( kv ) 
+      Console.println( kv._2.deltas ) 
+    })
+    */
+
     Console.println("start simulation")
     var continue = true
     var t = 1
     while( continue ){
       
-
       Console.println( "t:" + t )
+
       // adjust the particles
-      particles.foreach( tick( _ ) )
+      pmap.foreach( ( p : (Int,Particle) ) => { tick( p._2 ) } )
       
-      calcDistances(particles.toList)
+      // update the distances
+      calcDistances( pmap.values.toList )
+
+      /*
+      pmap.foreach( ( kv : (Int,Particle) ) => { 
+        Console.println( kv ) 
+        Console.println( kv._2.deltas ) 
+      })
+      */
       
-      // print the positions
-      // printDistances( particles )
-      // particles.foreach( Console.println( _ ) )
       t = t + 1
       
-      val gs = particles.groupBy( _.position )
+      // detect and remove collisions
+      val gs = pmap.values.groupBy( _.position )
       
-      if( gs.size != particles.size ){
-        Console.println( "t:"+ t )
+      if( gs.size != pmap.size ){
         Console.println( "found collision" )
         val ds = gs.filter( _._2.size > 1 )
-        Console.println( ds )
-        continue = false
+        for( kv <- ds ){
+          Console.println( "collision pos:" + kv._1 )
+          Console.println( "collision particles:" + kv._2 )
+          kv._2.foreach( ( dp : Particle ) => {
+            Console.println( "removing:" + dp.id )
+            pmap.remove(dp.id)
+          } )
+          
+          
+        }
       }
-      
       
       // if there is only 1 particle left
       // or if all the particles are moving away from each other - we are done
-      if( particles.size <= 1 ){
+      if( pmap.size <= 1 || t > 1000 ){
         continue = false
       }
       
       
-      
     }
-    Console.println("end simulation")
+    Console.println("end simulation at:"+ ( t - 1 ) )
+    Console.println("particles left:" + pmap.size )
+    /*
+    pmap.foreach( ( kv : (Int,Particle) ) => { 
+      Console.println( kv ) 
+      Console.println( kv._2.deltas ) 
+    })
+    */
 
-    // printPoints( particles )
-    // printDistances( particles )
-    // particles.foreach( Console.println( _ ) )
-    
-    val ps = particles.sortBy( (p : Particle) => { distance( p.acceleration ) } )
-    // Console.println( ps )
-    Console.println(t)
-    
   }
   
   def tick( p : Particle ) : Unit = {
