@@ -126,14 +126,6 @@ object Day21 {
     val rules = lines.map( toRule( _ ) )
     Console.println( rules )
     
-    testHFlip()
-    testRotate()
-    testRotate2()
-    testVFlip()
-    
-    testRotate4()
-    testHFlip2()
-    testHV()
   }
   
   def toRule( line : String ) : Rule = {
@@ -182,62 +174,10 @@ object Day21 {
     
   }
   
-  def testVFlip() : Unit = {
-    val in = List( ".#.", "..#", "###" )
-    val out = vFlip(in)
-    Console.println(out)
-  }
-
-  def testHFlip() : Unit = {
-    val in = List( ".#.", "..#", "###" )
-    val out = hFlip(in)
-    Console.println(out)
-  }
-  
-  def testRotate() : Unit = {
-    val in = List( ".#.", "..#", "###" )
-    val out = rotate(in)
-    Console.println(out)
-  }
-
-  def testRotate2() : Unit = {
-    val in = List( ".#.", "..#", "###" )
-    val out = rotate(rotate(in))
-    Console.println(out)
-  }
-
-  def testRotate4() : Unit = {
-    val in = List( ".#.", "..#", "###" )
-    Console.println("r4")
-    Console.println(in)
-    val out = rotate(rotate(rotate(rotate(in))))
-    Console.println(out)
-  }
-  
   def vFlip( in : List[String] ) : List[String] = {
     in.reverse
   }
 
-  def testHFlip2() : Unit = {
-    val in = List( ".#.", "..#", "###" )
-    Console.println("hf2")
-    Console.println(in)
-    val out = hFlip(hFlip(in))
-    Console.println(out)
-  }
-
-  def testHV() : Unit = {
-    val in = List( ".#.", "..#", "###" )
-    Console.println("hv")
-    Console.println(in)
-    val out = vFlip(hFlip(in))
-    Console.println(out)
-
-    Console.println("vh")
-    Console.println(in)
-    val o2 = hFlip(vFlip(in))
-    Console.println(o2)
-  }
   /*
     
 .#.   .#.   #..   ###
