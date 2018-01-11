@@ -2,6 +2,7 @@ package com.github.aoc
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.HashMap
 
 object Day21 {
   
@@ -119,36 +120,158 @@ object Day21 {
   
   val input = ".#./..#/###"
   val input2 = "#..#/..../..../#..#"
+
+  val rules = ListBuffer[Rule]()
+  val ruleMap = HashMap[Int,ListBuffer[Rule]]()
   
   case class Rule( val size : Int, val pattern : String, val output : String, val combos : List[String] )
   
   def main( args : Array[String] ) : Unit = {
+
     Console.println( "day 21 start" )
     
     val lines = Common.toLines( data )
+    rules ++= lines.map( toRule( _ ) )
     
-    val rules = lines.map( toRule( _ ) )
-    // rules.foreach( Console.println( _ ) )
+    val tmp = rules.groupBy( _.size )
+    ruleMap ++= tmp
+
+    var is = input.split("/").toList 
     
-    var is = input2.split("/").toList 
-    var size = is(0).size 
-    
-    printGrid(is)
-    
-    if( size % 2 == 0 ){
-      Console.println( "2s" )
-    }
-    else if( size % 3 == 0 ) {
-      Console.println( "3s" )
-    }
-    else {
-      Console.println( "nope" )
-    }
-    
-    val result = toGrid( is ) 
+    var result = toGrid( is ) 
+    Console.println( "start" )
     printGrid( result )
     
+    for( i <- 0 until 18 ){
+    
+      result = transform( result )
+      Console.println( "transform "+ i )
+      printGrid( result )
+      
+      // count the on pixels
+      Console.println( "on "+ onCount(result) )
+      Console.println( "size "+ result.size )
+    
+    }
+    
     Console.println( "day 21 done" )
+  }
+  
+  def onCount( input : Array[Array[Char]] ) : Long = {
+    
+    var count : Long = 0
+    
+    val sz = input.size
+    
+    for( y <- 0 until sz ){
+      for( x <- 0 until sz ){
+        if( input(y)(x) == '#' ){
+          count = count + 1
+        }
+      }
+      
+    }
+    
+    count 
+    
+  }
+  
+  def transform( input : Array[Array[Char]] ) : Array[Array[Char]] = {
+    
+    // first lets calc the size of the output grid
+    
+    val sz = input(0).size
+    
+    val subsize = if( sz % 2 == 0 ){ 2 } else { 3 }
+    val dim = sz / subsize
+    Console.println("grid dims:"+ dim +","+ dim )
+    
+    val newsubsize = if( subsize == 2 ){ 3 } else { 4 }
+    val newsz = dim * newsubsize 
+    Console.println("new cell size:"+ newsubsize )
+    Console.println("new array size:"+ newsz )
+    
+    val output = Array.ofDim[Char](newsz,newsz)
+    
+    for( gy <- 0 until dim ){
+      for( gx <- 0 until dim ){ 
+        
+        // now take subgrid of the current grid
+        Console.println( "cell:"+ gx +","+ gy )
+        var ss = ListBuffer[String]()
+        for( sy <- 0 until subsize ){
+          var sub = ""
+          for( sx <- 0 until subsize ){
+            
+            val x = sx + (gx * subsize)
+            val y = sy + (gy * subsize)
+            // Console.println( "getting:"+ x +"," + y )
+            sub = sub + input(y)(x)
+          }
+          ss += sub
+        }
+
+        val sub = ss.mkString("/")
+        Console.println( "transforming from:'"+ sub + "'" )
+
+        // transform according to rule
+        val t = transform(sub)
+        Console.println( "transforming to:'"+ t + "'" )
+        val res = toGrid(t)
+
+        // and put in the output
+        for( sy <- 0 until newsubsize ){
+          for( sx <- 0 until newsubsize ){
+            
+            val x = sx + (gx * newsubsize)
+            val y = sy + (gy * newsubsize)
+            output(y)(x) = res(sy)(sx)
+          }
+        }
+
+      }
+    }
+    
+    output
+    
+  }
+  
+  def transform( input : String ) : String = {
+    
+    val cell = input.split("/").toList
+    val cs = makeCombos(cell)
+    
+    val sz = cell(0).size
+    
+    val rules = ruleMap(sz).filter( ( r: Rule ) => {
+      cs.contains(r.pattern)
+    } )
+    
+    if( rules.isEmpty ){
+      Console.println( "no match found:"+ input )
+      throw new IllegalStateException( "no match found:"+ input )
+    }
+    else if( rules.size > 1 ){
+      Console.println( "should not match multiples:"+ input )
+    }
+    
+    rules(0).output
+
+  }
+  
+  def toGrid( input : String ) : Array[Array[Char]] = {
+    val ps = input.split("/")
+    val sz = ps.size
+    val output = Array.ofDim[Char](sz,sz)
+    
+    for( y <- 0 until sz ){
+      for( x <- 0 until sz ){
+        output(y)(x) = ps(y)(x)
+      }
+    }
+    
+    
+    output
   }
   
   def printGrid( lines : List[String] ) : Unit = {
@@ -233,19 +356,6 @@ object Day21 {
     in.reverse
   }
   
-  
-  
-  def isMatch( a : List[String], b : List[String] ) : Boolean = {
-    val z = a.zip(b)
-    z.forall( ( t : (String,String) ) => { t._1.equals(t._2) } ) 
-  }
-  
-  def testSame() : Unit = {
-    val a = List( ".#.", "..#", "###" )
-    val b = List( ".#.", "..#", "###" )
-    Console.println( isMatch( a, b ) )
-  }
-  
   def combine( a : List[String] ) : String = {
     a.mkString("/")
   }
@@ -281,17 +391,5 @@ object Day21 {
     val a = List( ".#.", "..#", "###" )
     Console.println( makeCombos(a) )
   }
-  /*
-    
-.#.   .#.   #..   ###
-..#   #..   #.#   ..#
-###   ###   ##.   .#.
-
-.##
-#.#
-..#
- 
-*/
-  
   
 }
