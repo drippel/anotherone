@@ -62,15 +62,26 @@ object Day22 {
     }
   }
   
+  def reverse( dir : Direction ) : Direction = {
+    dir match {
+      case North() => { South() }
+      case East() => { West() }
+      case South() => { North() }
+      case West() => { East() }
+    }
+  }
+  
   def turn( carrier : Carrier ) : Direction = {
     grid.getOrElse( carrier.location, '.' ) match {
       case '.' => { left( carrier.direction ) }
+      case 'W' => { carrier.direction }
       case '#' => { right( carrier.direction ) }
+      case 'F' => { reverse( carrier.direction ) }
     }
   }
   
   // stats
-  var effectiveBursts = 0
+  var effectiveBursts : Long = 0
   var cleaned = 0
   var infected = 0
   
@@ -80,15 +91,13 @@ object Day22 {
     val newDirection = turn( carrier )
     
     val newState = grid.getOrElse( carrier.location, '.' ) match {
-      case '.' => { 
-        infected = infected + 1
+      case '.' => { 'W' }
+      case 'W' => {
         effectiveBursts = effectiveBursts + 1
-        '#'
+        '#' 
       }
-      case '#' => { 
-        cleaned = cleaned + 1
-        '.'
-      }
+      case '#' => { 'F' } 
+      case 'F' => { '.' }
     }
     
     grid += ( carrier.location -> newState )
@@ -111,10 +120,10 @@ object Day22 {
     Console.println( "carrier:"+ carrier.location +" "+ carrier.direction )
     printMap()
     
-    for( i <- 0 until 10000 ){
+    for( i <- 0 until 10000000 ){
       carrier = burst( carrier )
-      Console.println("burst:"+ (i + 1) )
-      Console.println( "carrier:"+ carrier.location +" "+ carrier.direction )
+      // Console.println("burst:"+ (i + 1) )
+      // Console.println( "carrier:"+ carrier.location +" "+ carrier.direction )
     }
     
     printMap()
