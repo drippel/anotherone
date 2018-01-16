@@ -147,16 +147,16 @@
                         </goals>
                     </execution>
                     <execution>
-                        <id>day22</id>
+                        <id>day23</id>
                         <phase>package</phase>
                         <configuration>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
-                            <finalName>day22</finalName>
+                            <finalName>day23</finalName>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.github.aoc.Day22</mainClass>
+                                    <mainClass>com.github.aoc.Day23</mainClass>
                                 </manifest>
                             </archive>
                         </configuration>
